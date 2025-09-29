@@ -11,9 +11,9 @@ const PackCard = ({
   return (
     <View style={styles.packCard}>
       <Text style={styles.packTitle}>{pack.title}</Text>
-      <View style={{ marginTop: 8 }}>
+      <View style={styles.goalsWrapper}>
         {pack.goals.map(g => (
-          <Text key={g.id} style={styles.packGoal}>
+          <Text key={g._id} style={styles.packGoal}>
             • {g.title}
           </Text>
         ))}
@@ -23,7 +23,7 @@ const PackCard = ({
         onPress={() =>
           Alert.alert(
             `Choose "${pack.title}"?`,
-            'This will set these 3 goals as your active daily goals.',
+            `This will set these ${pack.goals.length} goals as your active daily goals.`,
             [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Choose Pack', onPress: () => onChoose(pack) },
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chooseBtnText: { color: '#fff', fontWeight: '700' },
+  goalsWrapper: { marginTop: 8 },
 });
 
 export default PackCard;

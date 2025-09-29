@@ -2,20 +2,25 @@ import React, { useState, useCallback, useEffect } from 'react';
 import DeviceInfo from 'react-native-device-info';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import storage from '../../../storage';
-import {
-  GoalStatus,
-  Pack,
-  GoalsStatusMap,
-  Goal,
-} from '../../../types/Dashboard';
+import { GoalStatus, Pack, Goal } from '../../../types/Dashboard';
 import { STORAGE_KEYS } from '../../../constants/storageKeys';
-import { todayKey, buildInitialStatuses, formattedDate } from '../../../utils';
+import { formattedDate, isoDate } from '../../../utils';
 import GoalCard from '../components/GoalCard';
 import PackCard from '../components/PackCard';
-import { useGetPacks, useCreatePack } from '../services/Dashboard.services';
+import {
+  useGetPacks,
+  useCreatePack,
+  PackResponse,
+} from '../services/Dashboard.services';
+import { useSelectedPackStore } from '../../../store/useSelectedPack';
+import { GoalsStatusMap } from '../../../types/Dashboard';
 
 const Dashboard = () => {
-  const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
+  const selectedDate = useSelectedPackStore(s => s.selectedDate);
+  const selectPackForToday = useSelectedPackStore(s => s.selectPackForToday);
+  const clearSelectedPack = useSelectedPackStore(s => s.clearSelectedPack);
+  const rehydrated = useSelectedPackStore(s => s.rehydrated);
+  const selectedPack = useSelectedPackStore(s => s.selectedPack);
   const [goalStatuses, setGoalStatuses] = useState<GoalsStatusMap>({});
   const [activityLevel, setActivityLevel] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -26,51 +31,22 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    console.log('dkjhgakjhdgkahjsd');
-    checkPackSelected();
-    // first the app should check if there is any packs selected for the
-  }, []);
-
-  const checkPackSelected = async () => {
-    setLoading(true);
-    // gets the packs added to local store and filters based on createdAt date.
-    // if the pack exists then updates the state with the filtered pack or makes an API call to render the pack suggestion.
-    // the API should also check whether there is any existing packs selected for the specific date if not then return the suggestion else return the pack selected
-
-    console.log('packs');
-    try {
-      const user = await storage.get(STORAGE_KEYS.USER_INFO);
-      const packs = await storage.get(STORAGE_KEYS.SELECTED_PACK);
-      if (!packs) {
-        // fetch new suggestion
-        setActivityLevel(user.activityLevel.toLowerCase());
-      } else {
-        // filter the pack based on date and update the state
-        for (let pack of packs) {
-          const packCreatedDate = new Date(`${pack?.pack?.createdAt}`)
-            .toISOString()
-            .split('T')[0];
-
-          if (packCreatedDate === todayKey()) {
-            console.log('same');
-            setSelectedPack(pack?.pack);
-            return;
-          }
-        }
+    console.log('rehydrated', rehydrated);
+    if (rehydrated) {
+      if (selectedDate !== isoDate()) {
+        invokeFetchSuggestion();
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [rehydrated, selectedDate]);
 
+  const invokeFetchSuggestion = async () => {
+    clearSelectedPack();
+    const user = await storage.get(STORAGE_KEYS.USER_INFO);
+    console.log(user, 'user');
+    setActivityLevel(user.activityLevel.toLowerCase());
+  };
   const handleChoosePack = useCallback(async (pack: Pack) => {
     setLoading(true);
-    const initial = buildInitialStatuses(pack);
-    setSelectedPack(pack);
-    setGoalStatuses(initial);
-
     postSelectedPack(pack);
   }, []);
 
@@ -79,14 +55,8 @@ const Dashboard = () => {
     mutate(
       { deviceId, pack },
       {
-        onSuccess: async data => {
-          console.log(data.data, 'response');
-          console.log(JSON.stringify(data, null, 2));
-          const storedPacks = await storage.get(STORAGE_KEYS.SELECTED_PACK);
-          const existing: Pack[] = Array.isArray(storedPacks)
-            ? storedPacks
-            : [];
-          storage.set(STORAGE_KEYS.SELECTED_PACK, [...existing, data]);
+        onSuccess: async (response: PackResponse) => {
+          selectPackForToday(isoDate(), response?.pack);
           setLoading(false);
         },
         onError: error => {
@@ -119,7 +89,7 @@ const Dashboard = () => {
     [goalStatuses, selectedPack],
   );
 
-  if (isFetching || loading) {
+  if (isFetching || loading || !rehydrated) {
     return (
       <View style={styles.loader}>
         <Text>Loading...</Text>
@@ -127,7 +97,6 @@ const Dashboard = () => {
     );
   }
 
-  console.log(data?.packs, 'selected pack');
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -158,21 +127,19 @@ const Dashboard = () => {
           )}
         />
       ) : (
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={selectedPack?.goals}
-            keyExtractor={g => g?._id}
-            contentContainerStyle={styles.padding}
-            renderItem={({ item }: { item: Goal }) => (
-              <GoalCard
-                goal={item}
-                status={goalStatuses[item?._id] ?? 'pending'}
-                onStart={handleStartGoal}
-                onComplete={handleCompleteGoal}
-              />
-            )}
-          />
-        </View>
+        <FlatList
+          data={selectedPack?.goals}
+          keyExtractor={g => g?._id}
+          contentContainerStyle={styles.padding}
+          renderItem={({ item }: { item: Goal }) => (
+            <GoalCard
+              goal={item}
+              status={goalStatuses[item?._id] ?? 'pending'}
+              onStart={handleStartGoal}
+              onComplete={handleCompleteGoal}
+            />
+          )}
+        />
       )}
     </View>
   );

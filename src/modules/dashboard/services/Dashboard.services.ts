@@ -6,10 +6,9 @@ import {
   useMutation,
 } from '@tanstack/react-query';
 import { apiService } from '../../../network';
-import { useDeviceId } from '../../../hooks/useDeviceId';
 
 export interface GoalTemplate {
-  id: string;
+  _id: string;
   title: string;
   type: 'exercise' | 'nutrition' | 'sleep' | 'mindfulness' | 'other';
   target?: string | null;
@@ -19,12 +18,12 @@ export interface GoalTemplate {
 }
 
 export type Pack = {
-  id: string;
+  _id: string;
   title: string;
   goals: GoalTemplate[];
 };
 export interface PackTemplate {
-  id: string;
+  _id: string;
   title: string;
   goals: GoalTemplate[];
 }
@@ -42,11 +41,8 @@ export interface GetPacksResponse {
   packs: PackTemplate[];
 }
 
-export type CreatePackResponse = {
-  success: boolean;
-  data: {
-    pack: Pack;
-  };
+export type PackResponse = {
+  pack: Pack;
 };
 
 export interface GetPacksRequest {
@@ -88,7 +84,7 @@ export function useGetPacks(params: GetPacksRequest) {
 }
 
 export function useCreatePack(): UseMutationResult<
-  CreatePackResponse, // Success type
+  PackResponse, // Success type
   Error, // Error type
   CreatePackRequest // Variables type
 > {
@@ -98,7 +94,7 @@ export function useCreatePack(): UseMutationResult<
       if (!payload.deviceId) {
         return;
       }
-      const response = await apiService.post<CreatePackResponse>(
+      const response = await apiService.post<PackResponse>(
         '/packs/create',
         payload,
       );
