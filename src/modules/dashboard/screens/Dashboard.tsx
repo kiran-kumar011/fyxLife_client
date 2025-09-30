@@ -14,6 +14,7 @@ import {
   useUpdateGoal,
 } from '../services/Dashboard.services';
 import { useSelectedPackStore } from '../../../store/useSelectedPack';
+import Loader from '../../../components/Loader';
 
 const Dashboard = () => {
   const selectedDate = useSelectedPackStore(s => s.selectedDate);
@@ -92,7 +93,7 @@ const Dashboard = () => {
   if (isFetching || loading || !rehydrated) {
     return (
       <View style={styles.loader}>
-        <Text>Loading...</Text>
+        <Loader />
       </View>
     );
   }
