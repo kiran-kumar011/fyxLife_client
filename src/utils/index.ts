@@ -9,7 +9,7 @@ export const formattedDate = new Date().toLocaleDateString('en-US', {
 });
 
 export const buildInitialStatuses = (pack: Pack): GoalsStatusMap =>
-  Object.fromEntries(pack.goals.map(g => [g.id, 'pending' as GoalStatus]));
+  Object.fromEntries(pack.goals.map(g => [g._id, 'pending' as GoalStatus]));
 
 export const statusBackground = (status: GoalStatus) => {
   switch (status) {

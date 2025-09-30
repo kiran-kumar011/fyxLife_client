@@ -11,9 +11,9 @@ import {
   useGetPacks,
   useCreatePack,
   PackResponse,
+  useUpdateGoal,
 } from '../services/Dashboard.services';
 import { useSelectedPackStore } from '../../../store/useSelectedPack';
-import { GoalsStatusMap } from '../../../types/Dashboard';
 
 const Dashboard = () => {
   const selectedDate = useSelectedPackStore(s => s.selectedDate);
@@ -21,17 +21,18 @@ const Dashboard = () => {
   const clearSelectedPack = useSelectedPackStore(s => s.clearSelectedPack);
   const rehydrated = useSelectedPackStore(s => s.rehydrated);
   const selectedPack = useSelectedPackStore(s => s.selectedPack);
-  const [goalStatuses, setGoalStatuses] = useState<GoalsStatusMap>({});
+  const updateGoal = useSelectedPackStore(s => s.updateGoal);
+
   const [activityLevel, setActivityLevel] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   const { mutate } = useCreatePack();
+  const { mutate: mutateUpdateGoal } = useUpdateGoal();
   const { data, isFetching } = useGetPacks({
     activityLevel,
   });
 
   useEffect(() => {
-    console.log('rehydrated', rehydrated);
     if (rehydrated) {
       if (selectedDate !== isoDate()) {
         invokeFetchSuggestion();
@@ -59,35 +60,34 @@ const Dashboard = () => {
           selectPackForToday(isoDate(), response?.pack);
           setLoading(false);
         },
-        onError: error => {
-          console.log(error);
+        onError: () => {
           setLoading(false);
         },
       },
     );
   };
 
-  const handleStartGoal = useCallback(
-    async (goalId: string) => {
-      if (!selectedPack) {
-        return;
-      }
-      const next = { ...goalStatuses, [goalId]: 'in_progress' as GoalStatus };
-      setGoalStatuses(next);
-    },
-    [goalStatuses, selectedPack],
-  );
+  const postGoalUpdate = async (goalId: string, patch: any) => {
+    const deviceId = await DeviceInfo.getUniqueId();
+    mutateUpdateGoal(
+      {
+        goalId,
+        data: { ...patch, deviceId },
+      },
+      {
+        onSuccess: (data: any) => updateGoal(goalId, data),
+        onError: e => console.error(e),
+      },
+    );
+  };
 
-  const handleCompleteGoal = useCallback(
-    async (goalId: string) => {
-      if (!selectedPack) {
-        return;
-      }
-      const next = { ...goalStatuses, [goalId]: 'completed' as GoalStatus };
-      setGoalStatuses(next);
-    },
-    [goalStatuses, selectedPack],
-  );
+  const handleStartGoal = useCallback(async (goalId: string) => {
+    postGoalUpdate(goalId, { startTime: new Date().toISOString() });
+  }, []);
+
+  const handleCompleteGoal = useCallback(async (goalId: string) => {
+    postGoalUpdate(goalId, { completedTime: new Date().toISOString() });
+  }, []);
 
   if (isFetching || loading || !rehydrated) {
     return (
@@ -134,7 +134,6 @@ const Dashboard = () => {
           renderItem={({ item }: { item: Goal }) => (
             <GoalCard
               goal={item}
-              status={goalStatuses[item?._id] ?? 'pending'}
               onStart={handleStartGoal}
               onComplete={handleCompleteGoal}
             />

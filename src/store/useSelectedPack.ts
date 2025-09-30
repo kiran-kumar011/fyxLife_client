@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import produce from 'immer';
+import { produce } from 'immer';
 import { Goal, Pack } from './types';
 import { mmkvStorage, PERSIST_KEY } from '../storage/mmkvStorage';
 
@@ -25,7 +25,6 @@ export const useSelectedPackStore = create<SelectedPackState>()(
       rehydrated: false,
 
       selectPackForToday: (dateIso, pack) => {
-        console.log(pack, 'pack from zustand');
         set(() => ({
           selectedDate: dateIso,
           selectedPack: {
@@ -48,13 +47,12 @@ export const useSelectedPackStore = create<SelectedPackState>()(
           }
           // produce a new pack immutably
           const newPack = produce(state.selectedPack, draft => {
-            const idx = draft.goals.findIndex(g => g.id === goalId);
+            const idx = draft.goals.findIndex(g => g._id === goalId);
             if (idx === -1) {
               return;
             }
             draft.goals[idx] = { ...draft.goals[idx], ...patch };
             draft.updatedAt = new Date().toISOString();
-            draft.needsSync = true;
           });
           // return partial state update
           return { selectedPack: newPack };

@@ -1,7 +1,6 @@
 // api/packs.ts
 import {
   useQuery,
-  type UseQueryOptions,
   UseMutationResult,
   useMutation,
 } from '@tanstack/react-query';
@@ -90,7 +89,6 @@ export function useCreatePack(): UseMutationResult<
 > {
   return useMutation({
     mutationFn: async (payload: CreatePackRequest) => {
-      console.log(payload, 'payload');
       if (!payload.deviceId) {
         return;
       }
@@ -102,3 +100,26 @@ export function useCreatePack(): UseMutationResult<
     },
   });
 }
+
+type UpdateGoalRequest = {
+  startTime?: string;
+  deviceId: string;
+  completedTime?: string;
+};
+
+const updateGoal = async (goalId: string, data: UpdateGoalRequest) => {
+  const response = await apiService.put(`/goals/${goalId}`, data);
+  return response.data;
+};
+
+export const useUpdateGoal = () => {
+  return useMutation({
+    mutationFn: ({
+      goalId,
+      data,
+    }: {
+      goalId: string;
+      data: UpdateGoalRequest;
+    }) => updateGoal(goalId, data),
+  });
+};

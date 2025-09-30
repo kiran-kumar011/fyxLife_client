@@ -1,3 +1,9 @@
+export enum GoalStatusEnum {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Completed = 'completed',
+}
+
 export type GoalStatus = 'pending' | 'in_progress' | 'completed';
 
 export type Goal = {
@@ -19,4 +25,4 @@ export interface Pack {
   goals: Goal[];
 }
 
-export type GoalsStatusMap = Record<string, GoalStatus>;
+export type GoalsStatusMap = Record<string, GoalStatusEnum>;

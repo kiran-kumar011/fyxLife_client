@@ -1,23 +1,31 @@
+import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Goal, GoalStatus } from '../../../types/Dashboard';
+import { Goal, GoalStatusEnum } from '../../../types/Dashboard';
 import { statusBackground } from '../../../utils';
 
 type GoalCardProps = {
   goal: Goal;
-  status: GoalStatus;
   onStart: (id: string) => void;
   onComplete: (id: string) => void;
 };
-const GoalCard = ({ goal, status, onStart, onComplete }: GoalCardProps) => {
+const GoalCard = ({ goal, onStart, onComplete }: GoalCardProps) => {
+  const status = useMemo(() => {
+    return goal?.completedTime
+      ? GoalStatusEnum.Completed
+      : goal?.startTime && !goal?.completedTime
+      ? GoalStatusEnum.InProgress
+      : GoalStatusEnum.Pending;
+  }, [goal]);
+
   return (
     <View style={[styles.goalCard, statusBackground(status)]}>
       <View style={styles.goalStatusWrapper}>
         <Text style={styles.goalTitle}>{goal.title}</Text>
         <Text style={styles.goalStatus}>Status: {status}</Text>
       </View>
-
       <View style={styles.goalActions}>
         <TouchableOpacity
+          disabled={status !== GoalStatusEnum.Pending}
           style={[
             styles.smallBtn,
             status === 'in_progress' && styles.smallBtnActive,
@@ -25,8 +33,8 @@ const GoalCard = ({ goal, status, onStart, onComplete }: GoalCardProps) => {
           onPress={() => onStart(goal._id)}>
           <Text style={styles.smallBtnText}>Start</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
+          disabled={status === GoalStatusEnum.Completed}
           style={[
             styles.smallBtn,
             status === 'completed' && styles.smallBtnActive,
